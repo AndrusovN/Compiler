@@ -1,0 +1,7 @@
+*.output
+*.tab.cc
+*.tab.hh
+*.tab.o
+*.o
+*.yy.cc
+intellectual-calc
