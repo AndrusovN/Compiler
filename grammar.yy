@@ -2,27 +2,24 @@
 %require "3.2"
 
 %define api.token.raw
-%define api.value.type { int }
-%parse-param {int &val}
+
+%code requires {
+	#include "ast.h"
+}	
+
+%define api.value.type { INode* }
+%parse-param {INode*& ast}
+
 %code provides {
 	#define YYSTYPE yy::parser::semantic_type
-	#include <map>
-	#include <vector>
-	#include <string>
-
-	extern std::vector<int> variables;
-	extern std::map<std::string, int> variable_id;
 }
 
 %code {
-	std::vector<int> variables;
-	std::map<std::string, int> variable_id;
 	// Give Flex the prototype of yylex we want ...
 	#define YY_DECL \
 		yy::parser::token::yytokentype yylex(yy::parser::semantic_type *yylval)
 	// ... and declare it for the parser's sake.
 	YY_DECL;
-	#define MATH_ABS(x) (((x) < 0) ? (-(x)) : (x))
 }
 
 %define parse.error verbose
@@ -43,8 +40,11 @@
 	LPAR
 	RPAR
 	NUM
+	LBR
+	RBR
+	LOGL
+	LOGR
 %nterm expr
-%nterm preparation
 
 %left SPLIT
 %left PLUS
@@ -55,29 +55,19 @@
 
 %start program
 %%
-program: preparation SPLIT RETURN expr	{ val = $4; }
-       |	RETURN expr {val = $2; }
+program: expr SPLIT { ast = new Scope($1); }
 ;
 
-preparation: preparation SPLIT preparation {}
-	|	VAR ASSIGN expr { variables[$1] = $3; }
-;
+expr:	NUM { $$ = $1; }
+    |	LOGL expr LOGR {$$ = new Log($2); } 
+    |	VAR { $$ = $1; }
+    |	LPAR expr RPAR { $$ = $2; }
+    |	expr SPLIT expr { $$ = new Splitted($1, $3); }
+    |	LBR expr SPLIT RBR { $$ = new Scope($2); }
+    |	expr PLUS expr { $$ = new Plus($1, $3); }
+    |	expr ASSIGN expr { $$ = new Assign((Variable*)$1, $3); }
 
-expr:	expr PLUS expr	{ $$ = $1 + $3; }
-    |   VAR { $$ = variables[$1]; }
-    |   MINUS expr { $$ = -1 * $2; } 
-    |	LPAR expr RPAR	{ $$ = $2; }
-    |	NUM		{ $$ = $1; }
-    |   expr MINUS expr { $$ = $1 - $3; }
-    |   expr MULT expr { $$ = $1 * $3; }
-    |   expr DIV expr { $$ = $1 / $3; }
-    |   expr MOD expr { if ($1 < 0) {
-				std::cout << "there\n";
-				$$ = (MATH_ABS($3) - ((-$1) % MATH_ABS($3))) % MATH_ABS($3);
-			} else {
-				$$ = $1 % MATH_ABS($3);
-			}
-		}
+
 ;
 
 %%

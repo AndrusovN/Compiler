@@ -2,8 +2,10 @@
 #include <iostream>
 
 int main() {
-	int res;
+	INode* res;
 	yy::parser parse(res);
 	parse();
-	std::cout << std::endl << res << std::endl;
+	Context context;
+	value_type code = res->apply(context);
+	std::cout << std::endl << "Program finished with exit code " << code << std::endl;
 }

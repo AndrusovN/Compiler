@@ -2,6 +2,7 @@
 %{
 	#include "grammar.tab.hh"
 	#include <string>
+	#include "ast.h"
 	#define YY_TERMINATE return 
 %}
 %x comment
@@ -25,20 +26,18 @@ var	[a-zA-Z_]+
 "("		return yy::parser::token::TOK_LPAR;
 ")"		return yy::parser::token::TOK_RPAR;
 {num}	{
-		*yylval = std::stoi(yytext);
+		value_type v = std::stoi(yytext);
+		*yylval = new Value(v);
 		return yy::parser::token::TOK_NUM;
 	}
 ";"		return yy::parser::token::TOK_SPLIT;
-"return"	return yy::parser::token::TOK_RETURN;
 "="		return yy::parser::token::TOK_ASSIGN;
+"{"		return yy::parser::token::TOK_LBR;
+"}"		return yy::parser::token::TOK_RBR;
+"<<"		return yy::parser::token::TOK_LOGL;
+">>"		return yy::parser::token::TOK_LOGR;
 {var}	{
-		if (variable_id.find(yytext) == variable_id.end()) {
-			variable_id[yytext] = variables.size();
-			*yylval = variables.size();
-			variables.push_back(0);
-		} else {
-			*yylval = variable_id[yytext];
-		}
+		*yylval = new Variable(yytext);
 		return yy::parser::token::TOK_VAR;
 	}
 .	throw yy::parser::syntax_error("invalid character: " + std::string(yytext));
