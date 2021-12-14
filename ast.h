@@ -9,6 +9,12 @@
 typedef int _type_id;
 typedef int value_type;
 typedef int err_type;
+
+#if DEBUG_MODE
+	#define debug(x) std::cout << (x) << std::endl;
+#else
+	#define debug(x) ;
+#endif
 	
 class Context {
 	std::map<std::string, value_type> variables;
@@ -48,10 +54,11 @@ public:
 	Scope(INode* expr) : _expr(expr) {}
 
 	virtual value_type apply(Context& context) {
-		//std::cout << "Scope apply called" << std::endl;
+		debug("Scope apply called");
 		context.addScope();
 		value_type res = _expr->apply(context);
 		context.leaveScope();
+		return 0;
 	}
 };
 
@@ -69,9 +76,12 @@ public:
 class Splitted : public INode {
 	INode* _left_child, *_right_child;
 public:
-	Splitted(INode* lc, INode* rc) : _left_child(lc), _right_child(rc) {}
+	Splitted(INode* lc, INode* rc) : _left_child(lc), _right_child(rc) {
+		debug("Splitted initialized");
+	}
 
 	virtual value_type apply(Context& context) override {
+		debug("Splitted apply called");
 		value_type res = _left_child->apply(context);
 		_right_child->apply(context);
 		return res;
@@ -95,9 +105,12 @@ private:
 	INode* _right_child;
 	Variable* _left_child;
 public:
-	Assign(Variable* lc, INode* rc) : _left_child(lc), _right_child(rc) {}
+	Assign(Variable* lc, INode* rc) : _left_child(lc), _right_child(rc) {
+		debug("Assign initialized");
+	}
 
 	virtual value_type apply(Context& context) override {
+		debug("Assign apply called");
 		return (_left_child->get(context) = _right_child->apply(context));
 	}
 };
@@ -107,11 +120,11 @@ private:
 	INode* _expr;
 public:
 	Log(INode* lc) : _expr(lc) {
-		//std::cout << "Log initialized" << std::endl;
+		debug("Log initialized");
 	}
 
 	virtual value_type apply(Context& context) override {
-		//std::cout << "Log apply called" << std::endl;
+		debug("Log apply called");
 		value_type res = _expr->apply(context);			
 		std::cout << res << std::endl;
 		return res;
@@ -125,7 +138,7 @@ public:
 	Value(value_type val) : _value(val) {}
 
 	virtual value_type apply(Context& context) override {
-		//std::cout << "Value apply called" << std::endl;
+		debug("Value apply called " << _value);
 		return _value;
 	}
 };
