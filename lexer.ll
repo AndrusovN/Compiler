@@ -25,6 +25,8 @@ var	[a-zA-Z_]+
 "+"		return yy::parser::token::TOK_PLUS;
 "("		return yy::parser::token::TOK_LPAR;
 ")"		return yy::parser::token::TOK_RPAR;
+"procedure"	return yy::parser::token::TOK_FUNCTION;
+"return"	return yy::parser::token::TOK_RETURN;
 {num}	{
 		value_type v = std::stoi(yytext);
 		*yylval = new Value(v);
@@ -37,7 +39,7 @@ var	[a-zA-Z_]+
 "<<"		return yy::parser::token::TOK_LOGL;
 ">>"		return yy::parser::token::TOK_LOGR;
 {var}	{
-		*yylval = new Variable(yytext);
+		*yylval = new NameToken(yytext);
 		return yy::parser::token::TOK_VAR;
 	}
 .	throw yy::parser::syntax_error("invalid character: " + std::string(yytext));
