@@ -11,7 +11,7 @@ typedef int value_type;
 typedef int err_type;
 
 #if DEBUG_MODE
-	#define debug(x) std::cout << (x) << std::endl;
+	#define debug(x) std::cout << x << std::endl;
 #else
 	#define debug(x) ;
 #endif
@@ -54,10 +54,22 @@ class Context {
 	}
 
 	void addFunction(std::string name, INode* func, INode* args) {
+		debug("Function " << name << " is reset");
 		functions[name] = std::make_pair(func, args);
 	}
 
 	std::pair<INode*, INode*> getFunction(std::string name) {
+		if (functions.find(name) == functions.end()) {
+			std::cout << "Error function not found!" << std::endl;
+			throw 1;
+		}
+		if (functions[name].second == nullptr) {
+			debug("second is null");
+		}
+		if (functions[name].first == nullptr) {
+			debug("first is null");
+		}
+		debug("function received");
 		return functions[name];
 	}	
 };
@@ -134,6 +146,18 @@ public:
 	}
 };
 
+class Minus : public INode {
+	INode* _left_child, *_right_child;
+public:
+	Minus(INode* lc, INode* rc) : _left_child(lc), _right_child(rc) {
+		debug("minus initialized");
+	}
+
+	value_type apply(Context& context) override {
+		return _left_child->apply(context) - _right_child->apply(context);
+	}
+};
+
 class Mult : public INode {
 	INode* _left_child, *_right_child;
 public:
@@ -149,7 +173,11 @@ class Tuple : public INode {
 	size_t size;
 public:
 	Tuple(INode* c, INode* next) : _current(c), _next(next) {
-		size = 1 + ((Tuple*)_next)->size;
+		int nextSize = 0;
+		if (_next != nullptr) {
+			nextSize = ((Tuple*)_next)->size;
+		}
+		size = 1 + nextSize;
 	}
 
 	value_type apply(Context& context) {
@@ -173,27 +201,131 @@ public:
 	FunctionCall(INode* argsTuple, INode* name) : _arguments(argsTuple), _name(name) {}
 
 	virtual value_type apply(Context& context) override {
+		debug("Function name: "  << ((NameToken*)_name)->getName());
 		std::pair<INode*, INode*> funcInfo = context.getFunction(((NameToken*)_name)->getName());
 		INode* expr = funcInfo.first;
 		INode* argNames = funcInfo.second;
-		
+		if (argNames == nullptr) {
+			debug("argNames is null");
+		}	
 		context.addScope();
 		Tuple* current = (Tuple*)_arguments;
 		Tuple* currentName = (Tuple*)argNames;
+		int steps = 0;
 		while(current != nullptr && currentName != nullptr) {
+			debug("argument_parsing in process");
 			NameToken* name = (NameToken*)currentName->getCurrent();
+			debug(name->getName());
 			value_type val = current->apply(context);
 			context.get(name->getName()) = val;
 
 			current = (Tuple*)current->getNext();
 			currentName = (Tuple*)currentName->getNext();
+			steps++;
 		}
-		if (current != nullptr) throw 1;
-		if (currentName != nullptr) throw 1;
+
+		if (current != nullptr) {
+			std::cout << "Args successfully parsed: " << steps << std::endl;
+			std::cout << "currentName is null!" << std::endl;
+			std::cout << current->apply(context) << std::endl;
+			throw 1;
+		}
+		if (currentName != nullptr) {
+			std::cout << "current is null!" << std::endl;
+			throw 1;
+		}
 
 		value_type res = expr->apply(context);
 		context.leaveScope();
 		return res;
+	}
+};
+
+class ConditionalBehaviour : public INode  {
+	INode* _condition;
+	INode* _expression;
+	public:
+	ConditionalBehaviour(INode* condition, INode* expression) : _condition(condition), _expression(expression) {
+		debug("IF initialized");
+	}
+
+	value_type apply(Context& context) override {
+		debug("IF called");
+		value_type condition_result = _condition->apply(context);
+		if ((bool)condition_result) {
+			value_type res = _expression->apply(context);
+			return res;
+		}
+		return 0;
+	}
+
+
+};
+
+class Equals : public INode {
+	INode* _left_child;
+	INode* _right_child;
+
+	public:
+	Equals(INode* left_child, INode* right_child) : _left_child(left_child), _right_child(right_child) {
+		debug("equals initialized");
+	}
+
+	value_type apply(Context& context) override {
+		debug("equals called");
+		value_type left = _left_child->apply(context);
+		value_type right = _right_child->apply(context);
+		return (left == right ? 1 : 0);
+	}
+};
+
+enum BooleanOpType {
+	_and, _or, _xor
+};
+
+class BooleanOp : public INode {
+	INode* _left_child, *_right_child;
+	BooleanOpType _t;
+
+	public:
+	BooleanOp(INode* left_child, INode* right_child, BooleanOpType t) : _left_child(left_child), _right_child(right_child), _t(t) {
+		debug("boolean op initialized");
+	}
+
+	value_type apply(Context& context) override {
+		value_type left = _left_child->apply(context);
+		value_type right = _right_child->apply(context);
+		bool res;
+		switch(_t) {
+			case _and: {
+				res = (left != 0) && (right != 0);
+				break;
+				  };
+			case _or: {
+				res = (left != 0) || (right != 0);
+				break;
+				 };
+			case _xor: {
+				res = (left != 0) ^ (right != 0);
+				break;
+				  };
+		}
+
+		return (res ? 1 : 0);
+	}
+};
+
+class InversedBoolean : public INode {
+	INode* _child;
+
+	public:
+	InversedBoolean(INode* child) : _child(child) {
+		debug("NOT initialized");
+	}
+
+	value_type apply(Context& context) override {
+		value_type child_value = _child->apply(context);
+		return (child_value == 0) ? 1 : 0;
 	}
 };
 
@@ -225,9 +357,10 @@ public:
 	}
 };
 class Assign : public INode {
-private:
-	INode* _right_child;
+private:	
 	Variable* _left_child;
+	INode* _right_child;
+
 public:
 	Assign(Variable* lc, INode* rc) : _left_child(lc), _right_child(rc) {
 		debug("Assign initialized");
@@ -262,9 +395,7 @@ public:
 	Value(value_type val) : _value(val) {}
 
 	virtual value_type apply(Context& context) override {
-		debug("Value apply called " << _value);
 		return _value;
 	}
 };
 #endif
-

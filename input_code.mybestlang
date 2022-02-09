@@ -1,0 +1,11 @@
+procedure recursion(var) { 
+	<<var>>; 
+	if (var ==== 0) { 
+		return(0); 
+	}; 
+	if (~(var ==== 0)) { 
+		return (recursion((var - 1))); 
+	}; 
+};
+
+<<recursion(3)>>;

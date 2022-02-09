@@ -45,10 +45,17 @@
 	LOGL
 	LOGR
 	FUNCTION
+	CONDITIONAL
+	AND
+	OR
+	XOR
+	NOT
+	EQUALS
+	SPL
 %nterm expr
 
-%left ASSIGN
 %left SPLIT
+%right ASSIGN
 %left PLUS
 %left MINUS
 %left MULT
@@ -61,20 +68,36 @@ program: expr SPLIT { ast = new Scope($1); }
 ;
 
 expr:	NUM { $$ = $1; }
-    |   FUNCTION VAR LPAR expr RPAR expr {$$ = new Function($6, $2, $4); }
-    |   FUNCTION VAR LPAR RPAR expr {$$ = new Function($5, $2, nullptr); }
+    |   FUNCTION VAR LPAR named_tuple RPAR scope {$$ = new Function($6, $2, $4); }
+    |   FUNCTION VAR LPAR RPAR scope {$$ = new Function($5, $2, nullptr); }
     |	RETURN LPAR expr RPAR {$$ = new Return($3); }
     |	LOGL expr LOGR {$$ = new Log($2); } 
-    |   VAR LPAR expr RPAR {$$ = new FunctionCall($3, $1); }
+    |   VAR LPAR tuple RPAR {$$ = new FunctionCall($3, $1); }
     |   VAR LPAR RPAR {$$ = new FunctionCall(nullptr, $1); }
     |	VAR { $$ = new Variable($1); }
     |	LPAR expr RPAR { $$ = $2; }
     |	expr SPLIT expr { $$ = new Splitted($1, $3); }
-    |	LBR expr SPLIT RBR { $$ = new Scope($2); }
     |	expr PLUS expr { $$ = new Plus($1, $3); }
+    |	expr MINUS expr { $$ = new Minus($1, $3); }
     |	expr ASSIGN expr { $$ = new Assign((Variable*)$1, $3); }
+    |   scope { $$ = $1; }
+    |   CONDITIONAL LPAR expr RPAR scope { $$ = new ConditionalBehaviour($3, $5); }
+    |	expr AND expr { $$ = new BooleanOp($1, $3, _and); }
+    |	expr OR expr { $$ = new BooleanOp($1, $3, _or); }
+    |	expr XOR expr { $$ = new BooleanOp($1, $3, _xor); }
+    |	expr EQUALS expr { $$ = new Equals($1, $3); }
+    |	NOT expr { $$ = new InversedBoolean($2); }
 ;
 
+scope: 	LBR expr SPLIT RBR { $$ = new Scope($2); };
+
+named_tuple: VAR SPL named_tuple {$$ = new Tuple($1, $3); }
+	   | VAR {$$ = new Tuple($1, nullptr); }
+;
+
+tuple: expr SPL tuple {$$ = new Tuple($1, $3); }
+     | expr {$$ = new Tuple($1, nullptr); }
+;
 %%
 
 void yy::parser::error(const std::string &err_message) {

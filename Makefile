@@ -1,7 +1,7 @@
 OBJ = lex.yy.o grammar.tab.o main.o
 PROG = intellectual-calc
 LIBS =
-CXXFLAGS +=-Wall -Wextra
+CXXFLAGS +=-Wall
 LEXFILE = lexer.ll
 LEX = flex
 

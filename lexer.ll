@@ -25,6 +25,7 @@ var	[a-zA-Z_]+
 "+"		return yy::parser::token::TOK_PLUS;
 "("		return yy::parser::token::TOK_LPAR;
 ")"		return yy::parser::token::TOK_RPAR;
+"if"		return yy::parser::token::TOK_CONDITIONAL;
 "procedure"	return yy::parser::token::TOK_FUNCTION;
 "return"	return yy::parser::token::TOK_RETURN;
 {num}	{
@@ -34,10 +35,16 @@ var	[a-zA-Z_]+
 	}
 ";"		return yy::parser::token::TOK_SPLIT;
 "="		return yy::parser::token::TOK_ASSIGN;
+"===="		return yy::parser::token::TOK_EQUALS;
+"&&&&"		return yy::parser::token::TOK_AND;
+"||||"		return yy::parser::token::TOK_OR;
+"~"		return yy::parser::token::TOK_NOT;
+"(+)"		return yy::parser::token::TOK_XOR;
 "{"		return yy::parser::token::TOK_LBR;
 "}"		return yy::parser::token::TOK_RBR;
 "<<"		return yy::parser::token::TOK_LOGL;
 ">>"		return yy::parser::token::TOK_LOGR;
+","		return yy::parser::token::TOK_SPL;
 {var}	{
 		*yylval = new NameToken(yytext);
 		return yy::parser::token::TOK_VAR;
